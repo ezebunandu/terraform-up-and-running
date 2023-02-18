@@ -2,6 +2,17 @@ provider "aws" {
   region = "us-east-2"
 }
 
+terraform {
+  backend "s3" {
+    bucket = "hezebonica-terraform-up-and-running-state"
+    key    = "global/s3/terraform.tfstate"
+    region = "us-east-2"
+
+    dynamodb_table = "terraform-up-and-running-locks"
+    encrypt        = true
+  }
+}
+
 variable "server-port" {
   description = "The port the server will use to listen for HTTP requests"
   type        = number
