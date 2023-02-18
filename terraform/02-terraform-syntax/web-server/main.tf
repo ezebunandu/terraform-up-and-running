@@ -2,14 +2,11 @@ provider "aws" {
   region = "us-east-2"
 }
 
+# Partial configuration. The other settings will be 
+# passed in from a file via -backend-config arguments to 'terraform init'
 terraform {
   backend "s3" {
-    bucket = "hezebonica-terraform-up-and-running-state"
-    key    = "global/s3/terraform.tfstate"
-    region = "us-east-2"
-
-    dynamodb_table = "terraform-up-and-running-locks"
-    encrypt        = true
+    key = "global/s3/terraform.tfstate"
   }
 }
 
