@@ -1,0 +1,5 @@
+# ignore terraform state files
+*.tfstate*
+
+# ignore provider files
+*terraform-provider*
