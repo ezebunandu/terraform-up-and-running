@@ -26,11 +26,11 @@ resource "aws_launch_configuration" "example-launch-config" {
   instance_type   = "t2.micro"
   security_groups = [aws_security_group.security-group-for-simple-web-server.id]
 
-  user_data = <<-EOF
-                #!/bin/bash
-                echo "Hello, World" > index.html
-                nohup busybox httpd -f -p ${var.server-port} &
-                EOF
+  user_data = templatefile("user-data.sh", {
+    server_port = var.server-port
+    db_address  = data.terraform_remote_state.db.outputs.address
+    db_port     = data.terraform_remote_state.db.outputs.port
+  })
   # Required when using a launch configuration with an auto scaling group.
   lifecycle {
     create_before_destroy = true
@@ -45,6 +45,16 @@ data "aws_subnets" "default" {
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.default.id]
+  }
+}
+
+# Allow the webserver to read outputs from the db tier
+data "terraform_remote_state" "db" {
+  backend = "s3"
+  config = {
+    bucket = "hezebonica-terraform-up-and-running-state"
+    key    = "stage/data-stores/mysql/terraform.tfstate"
+    region = "us-east-2"
   }
 }
 
