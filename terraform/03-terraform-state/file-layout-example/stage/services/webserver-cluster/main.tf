@@ -6,7 +6,9 @@ provider "aws" {
 # passed in from a file via -backend-config arguments to 'terraform init'
 terraform {
   backend "s3" {
-    key = "stage/services/webserver-cluster"
+    key            = "stage/services/webserver-cluster"
+    region         = "us-east-2"
+    dynamodb_table = "hezebonica-terraform-up-and-running-locks"
   }
 }
 
