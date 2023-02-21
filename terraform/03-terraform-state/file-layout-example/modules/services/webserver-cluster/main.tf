@@ -1,5 +1,5 @@
-resource "aws_security_group" "security-group-for-simple-web-server" {
-  name = "terraform-example-sg"
+resource "aws_security_group" "server" {
+  name = "${var.cluster_name}-server"
 
   ingress {
     from_port   = var.server-port
@@ -9,10 +9,11 @@ resource "aws_security_group" "security-group-for-simple-web-server" {
   }
 }
 
-resource "aws_launch_configuration" "example-launch-config" {
+resource "aws_launch_configuration" "launch-config" {
+  name            = "${var.cluster_name}-launch-config"
   image_id        = "ami-0fb653ca2d3203ac1"
   instance_type   = "t2.micro"
-  security_groups = [aws_security_group.security-group-for-simple-web-server.id]
+  security_groups = [aws_security_group.server.id]
 
   user_data = templatefile("user-data.sh", {
     server_port = var.server-port
@@ -40,14 +41,15 @@ data "aws_subnets" "default" {
 data "terraform_remote_state" "db" {
   backend = "s3"
   config = {
-    bucket = "hezebonica-terraform-up-and-running-state"
-    key    = "stage/data-stores/mysql/terraform.tfstate"
+    bucket = var.db_remote_state_bucket
+    key    = var.db_remote_state_key
     region = "us-east-2"
   }
 }
 
 resource "aws_autoscaling_group" "example-asg" {
-  launch_configuration = aws_launch_configuration.example-launch-config.name
+  name                 = "${var.cluster_name}-asg"
+  launch_configuration = aws_launch_configuration.launch-config.name
   vpc_zone_identifier  = data.aws_subnets.default.ids
   target_group_arns    = [aws_lb_target_group.asg.arn]
   health_check_type    = "ELB"
@@ -57,20 +59,20 @@ resource "aws_autoscaling_group" "example-asg" {
 
   tag {
     key                 = "Name"
-    value               = "terraform-asg-example"
+    value               = "${var.cluster_name}-terraform-asg"
     propagate_at_launch = true
   }
 }
 
-resource "aws_lb" "example-alb" {
-  name               = "terraform-asg-lb"
+resource "aws_lb" "alb" {
+  name               = "${var.cluster_name}-alb"
   load_balancer_type = "application"
   subnets            = data.aws_subnets.default.ids
-  security_groups    = [aws_security_group.alb.id]
+  security_groups    = [aws_security_group.alb-sg.id]
 }
 
 resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.example-alb.arn
+  load_balancer_arn = aws_lb.alb.arn
   port              = 80
   protocol          = "HTTP"
 
@@ -87,8 +89,8 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-resource "aws_security_group" "alb" {
-  name = "terraform-example-alb"
+resource "aws_security_group" "alb-sg" {
+  name = "${var.cluster_name}-alb-sg"
 
   # Allow inbound HTTP requests
   ingress {
@@ -110,7 +112,7 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_lb_target_group" "asg" {
-  name     = "terraform-example-asg"
+  name     = "${var.cluster_name}-asg"
   port     = var.server-port
   protocol = "HTTP"
   vpc_id   = data.aws_vpc.default.id
