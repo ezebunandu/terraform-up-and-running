@@ -4,8 +4,8 @@ resource "aws_security_group" "server" {
   ingress {
     from_port   = var.server-port
     to_port     = var.server-port
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    protocol    = local.tcp_protocol
+    cidr_blocks = local.all_ips
   }
 }
 
@@ -73,7 +73,7 @@ resource "aws_lb" "alb" {
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.alb.arn
-  port              = 80
+  port              = local.http_port
   protocol          = "HTTP"
 
   # By default, return a simple 404 page
@@ -94,20 +94,20 @@ resource "aws_security_group" "alb-sg" {
 
   # Allow inbound HTTP requests
   ingress {
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = local.all_ips
     description = "allows incoming traffic from anywhere to port 80"
-    from_port   = 80
-    protocol    = "tcp"
-    to_port     = 80
+    from_port   = local.http_port
+    protocol    = local.tcp_protocol
+    to_port     = local.http_port
   }
 
   # Allow all outbound requests
   egress {
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = local.all_ips
     description = "allows all outbound traffic so alb can perform health checks"
-    from_port   = 0
-    protocol    = "-1"
-    to_port     = 0
+    from_port   = local.any_port
+    protocol    = local.any_protocol
+    to_port     = local.any_port
   }
 }
 
